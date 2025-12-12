@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Midas Command Center - Personal Dashboard">
+    <meta name="theme-color" content="#000000">
+    <title>Midas Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --gold: #FFD700;
+            --gold-dim: #B8860B;
+            --gold-glow: rgba(255, 215, 0, 0.3);
+            --black: #000000;
+            --bg-dark: #0a0a0a;
+            --bg-card: rgba(20, 20, 20, 0.8);
+            --bg-glass: rgba(30, 30, 30, 0.6);
+            --border: rgba(255, 255, 255, 0.1);
+            --border-gold: rgba(255, 215, 0, 0.3);
+            --text: #FFFFFF;
+            --text-dim: #888888;
+            --text-muted: #555555;
+            --success: #32CD32;
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--black);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(255, 215, 0, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Header */
+        header {
+            padding: 30px 20px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, var(--bg-dark) 0%, transparent 100%);
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-shadow: 0 0 30px var(--gold-glow);
+            letter-spacing: 6px;
+        }
+
+        .tagline {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            margin-top: 5px;
+            letter-spacing: 2px;
+            font-weight: 300;
+        }
+
+        /* Navigation Tabs */
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: var(--bg-glass);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font-main);
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-btn:hover {
+            border-color: var(--border-gold);
+            color: var(--text);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+            color: var(--black);
+            border-color: var(--gold);
+            font-weight: 600;
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            color: var(--gold);
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-gold);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* App Cards */
+        .app-card {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), transparent);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .app-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .app-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+
+        .app-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .app-desc {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--gold);
+            color: var(--black);
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-top: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Prompt Cards */
+        .prompt-card {
+            cursor: pointer;
+        }
+
+        .prompt-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .prompt-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .prompt-category {
+            font-size: 0.7rem;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .prompt-text {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+            line-height: 1.5;
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .prompt-text::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(transparent, rgba(20, 20, 20, 1));
+        }
+
+        .copy-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        .prompt-card.copied {
+            border-color: var(--success);
+        }
+
+        .prompt-card.copied .copy-hint {
+            color: var(--success);
+        }
+
+        /* Quick Ref */
+        .ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .ref-card h3 {
+            color: var(--gold);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .ref-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+
+        .ref-item:last-child {
+            border-bottom: none;
+        }
+
+        .ref-label {
+            color: var(--text-dim);
+        }
+
+        .ref-value {
+            font-family: var(--font-mono);
+            color: var(--text);
+            font-size: 0.8rem;
+        }
+
+        .ref-value.copyable {
+            cursor: pointer;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .ref-value.copyable:hover {
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        /* Vault / Context */
+        .markdown-viewer {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            line-height: 1.7;
+        }
+
+        .markdown-viewer h1,
+        .markdown-viewer h2,
+        .markdown-viewer h3 {
+            color: var(--gold);
+            margin: 20px 0 10px;
+        }
+
+        .markdown-viewer h1 {
+            font-size: 1.5rem;
+        }
+
+        .markdown-viewer h2 {
+            font-size: 1.2rem;
+        }
+
+        .markdown-viewer h3 {
+            font-size: 1rem;
+        }
+
+        .markdown-viewer p {
+            margin: 10px 0;
+            color: var(--text-dim);
+        }
+
+        .markdown-viewer code {
+            font-family: var(--font-mono);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .markdown-viewer pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        .markdown-viewer pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .markdown-viewer table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .markdown-viewer th,
+        .markdown-viewer td {
+            padding: 10px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .markdown-viewer th {
+            background: rgba(255, 215, 0, 0.1);
+            color: var(--gold);
+        }
+
+        .markdown-viewer hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 20px 0;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--gold);
+            color: var(--black);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .logo {
+                font-size: 1.5rem;
+            }
+
+            .tab-btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+
+            .card-grid,
+            .ref-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">MIDAS</div>
+        <p class="tagline">Command Center</p>
+    </header>
+
+    <nav>
+        <button class="tab-btn active" data-tab="apps">🚀 Apps</button>
+        <button class="tab-btn" data-tab="prompts">📋 Prompts</button>
+        <button class="tab-btn" data-tab="quickref">📖 Quick Ref</button>
+        <button class="tab-btn" data-tab="vault">🗃️ Vault</button>
+        <button class="tab-btn" data-tab="context">🧠 Context</button>
+    </nav>
+
+    <main>
+        <!-- APPS SECTION -->
+        <section id="apps" class="section active">
+            <div class="section-header">
+                <h2 class="section-title">Applications</h2>
+            </div>
+            <div class="card-grid">
+                <a href="./life-guardrail/" class="card app-card">
+                    <div class="app-icon">⚡</div>
+                    <div class="app-name">Life Guardrail</div>
+                    <p class="app-desc">Unlimited customizable alarms with advanced recurrence patterns. Procedural
+                        sounds, countdowns, and full offline support.</p>
+                    <span class="badge">PWA</span>
+                </a>
+                <!-- Add more apps here -->
+            </div>
+        </section>
+
+        <!-- PROMPTS SECTION -->
+        <section id="prompts" class="section">
+            <div class="section-header">
+                <h2 class="section-title">Prompt Library</h2>
+            </div>
+            <div class="card-grid" id="prompts-grid">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <!-- QUICK REF SECTION -->
+        <section id="quickref" class="section">
+            <div class="section-header">
+                <h2 class="section-title">Quick Reference</h2>
+            </div>
+            <div class="ref-grid">
+                <div class="card ref-card">
+                    <h3>🖥️ Common Commands</h3>
+                    <div class="ref-item">
+                        <span class="ref-label">Serve locally</span>
+                        <span class="ref-value copyable" data-copy="python -m http.server 8080">python -m http.server
+                            8080</span>
+                    </div>
+                    <div class="ref-item">
+                        <span class="ref-label">ADB devices</span>
+                        <span class="ref-value copyable" data-copy="adb devices">adb devices</span>
+                    </div>
+                    <div class="ref-item">
+                        <span class="ref-label">ADB port forward</span>
+                        <span class="ref-value copyable" data-copy="adb reverse tcp:8080 tcp:8080">adb reverse tcp:8080
+                            tcp:8080</span>
+                    </div>
+                    <div class="ref-item">
+                        <span class="ref-label">Git push</span>
+                        <span class="ref-value copyable" data-copy="git add . && git commit -m 'Update' && git push">git
+                            add . && git commit...</span>
+                    </div>
+                </div>
+                <div class="card ref-card">
+                    <h3>📁 Important Paths</h3>
+                    <div class="ref-item">
+                        <span class="ref-label">Website Repo</span>
+                        <span class="ref-value copyable"
+                            data-copy="/run/media/midas/PARKING-GARAGE/PriorityFocusAlarm/midas82.github.io/">midas82.github.io/</span>
+                    </div>
+                    <div class="ref-item">
+                        <span class="ref-label">Master Archive</span>
+                        <span class="ref-value copyable" data-copy="/mnt/MasterArchive">/mnt/MasterArchive</span>
+                    </div>
+                    <div class="ref-item">
+                        <span class="ref-label">Google Drive</span>
+                        <span class="ref-value copyable" data-copy="~/GoogleDrive">~/GoogleDrive</span>
+                    </div>
+                </div>
+                <div class="card ref-card">
+                    <h3>🌐 Network</h3>
+                    <div class="ref-item">
+                        <span class="ref-label">Dell IP</span>
+                        <span class="ref-value copyable" data-copy="192.168.1.149">192.168.1.149</span>
+                    </div>
+                    <div class="ref-item">
+                        <span class="ref-label">Website URL</span>
+                        <span class="ref-value copyable" data-copy="https://midas82.github.io">midas82.github.io</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VAULT SECTION -->
+        <section id="vault" class="section">
+            <div class="section-header">
+                <h2 class="section-title">Vault</h2>
+            </div>
+            <div class="markdown-viewer" id="vault-content">
+                <h1>📚 Personal Knowledge Base</h1>
+                <p>Your persistent notes and documentation live here.</p>
+                <hr>
+                <h2>Getting Started</h2>
+                <p>Edit <code>vault.md</code> in the repo root to add your own content. This viewer will render it.</p>
+                <h2>Features</h2>
+                <ul>
+                    <li>Markdown rendering</li>
+                    <li>Code block support</li>
+                    <li>Tables</li>
+                    <li>Persistent across sessions</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- CONTEXT SECTION -->
+        <section id="context" class="section">
+            <div class="section-header">
+                <h2 class="section-title">Session Context</h2>
+            </div>
+            <div class="markdown-viewer" id="context-content">
+                <h1>🧠 Current Session</h1>
+                <p><strong>Date:</strong> 2025-12-12</p>
+                <hr>
+                <h2>What We're Working On</h2>
+                <ul>
+                    <li>Built personal command center website</li>
+                    <li>Added PWA support to Life Guardrail</li>
+                    <li>Set up GitHub Pages deployment</li>
+                </ul>
+                <h2>Next Steps</h2>
+                <ul>
+                    <li>Deploy to GitHub</li>
+                    <li>Test on S23 Ultra</li>
+                    <li>Share with family</li>
+                </ul>
+                <hr>
+                <p><em>This section auto-updates based on your session log.</em></p>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast" id="toast">Copied!</div>
+
+    <footer>
+        <p>Built by Midas · <a href="https://github.com/Midas82">GitHub</a></p>
+    </footer>
+
+    <script>
+        // Prompt data - edit this to add your prompts
+        const PROMPTS = [
+            {
+                title: "Code Review",
+                category: "Coding",
+                text: "Review this code for bugs, performance issues, and best practices. Suggest specific improvements with code examples."
+            },
+            {
+                title: "Explain Like I'm 5",
+                category: "Learning",
+                text: "Explain [TOPIC] in simple terms that a beginner would understand. Use analogies and avoid jargon."
+            },
+            {
+                title: "Debug Helper",
+                category: "Coding",
+                text: "I'm getting this error: [ERROR]. Here's my code: [CODE]. Help me understand what's wrong and how to fix it."
+            },
+            {
+                title: "Refactor Request",
+                category: "Coding",
+                text: "Refactor this code to be more readable, maintainable, and follow best practices. Explain your changes."
+            },
+            {
+                title: "Project Planning",
+                category: "Planning",
+                text: "Help me plan a project to build [DESCRIPTION]. Break it down into phases, estimate complexity, and identify potential challenges."
+            },
+            {
+                title: "Creative Brainstorm",
+                category: "Creative",
+                text: "I want to create [DESCRIPTION]. Give me 10 unique and creative approaches or variations I could try."
+            }
+        ];
+
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Render prompts
+        function renderPrompts() {
+            const grid = document.getElementById('prompts-grid');
+            grid.innerHTML = PROMPTS.map((p, i) => `
+                <div class="card prompt-card" data-prompt="${i}">
+                    <div class="card-header">
+                        <span class="prompt-title">${p.title}</span>
+                        <span class="prompt-category">${p.category}</span>
+                    </div>
+                    <div class="prompt-text">${p.text}</div>
+                    <div class="copy-hint">Click to copy</div>
+                </div>
+            `).join('');
+
+            // Add click handlers
+            grid.querySelectorAll('.prompt-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const idx = parseInt(card.dataset.prompt);
+                    copyToClipboard(PROMPTS[idx].text);
+                    card.classList.add('copied');
+                    setTimeout(() => card.classList.remove('copied'), 2000);
+                });
+            });
+        }
+
+        // Copy handlers for quick ref
+        document.querySelectorAll('.copyable').forEach(el => {
+            el.addEventListener('click', () => {
+                copyToClipboard(el.dataset.copy);
+            });
+        });
+
+        // Copy to clipboard utility
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied!');
+            });
+        }
+
+        // Toast notification
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Init
+        renderPrompts();
+    </script>
+
+</body>
+
+</html>
