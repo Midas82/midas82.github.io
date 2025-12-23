@@ -1,11 +1,53 @@
-# Sensitive files - never commit these
+# === PERSONAL/SENSITIVE FILES ===
 HOME_LAB_INVENTORY.md
 PHONE_CLEANUP.md
-
-# Dev notes
 REFERENCE.md
+*INVENTORY*
+*BACKUP*
+*SECRET*
+*PRIVATE*
+*credentials*
+*password*
 
-# Common ignores
-.DS_Store
-*.log
+# === CONFIG FILES WITH SECRETS ===
 .env
+.env.*
+*.env
+config.json
+secrets.json
+*.pem
+*.key
+*.crt
+
+# === NOTES & DRAFTS ===
+TODO.md
+NOTES.md
+DRAFT*
+*_DRAFT*
+*.draft
+personal/
+private/
+notes/
+
+# === SYSTEM FILES ===
+.DS_Store
+Thumbs.db
+*.log
+*.bak
+*.swp
+*~
+
+# === NODE/NPM ===
+node_modules/
+npm-debug.log
+
+# === PYTHON ===
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# === IDE ===
+.idea/
+.vscode/
+*.code-workspace
