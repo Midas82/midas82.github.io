@@ -497,9 +497,36 @@
             font-size: 1.2rem;
         }
 
+        .wakelock-active {
+            color: var(--color-gold) !important;
+            text-shadow: 0 0 10px var(--color-gold);
+        }
+
         .empty-hint {
             font-size: 0.8rem;
             margin-top: 5px;
+        }
+
+        .preview-btn {
+            padding: 8px 12px;
+            font-size: 1.2rem;
+            margin-left: 5px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+
+        .preview-btn:hover {
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        .sound-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .sound-row select {
+            flex: 1;
         }
 
         .time-row {
@@ -570,6 +597,8 @@
     <header>
         <h1>Life Guardrail</h1>
         <div class="header-right">
+            <button class="btn-reset text-lg" id="wakelock-btn" aria-label="Keep Screen On"
+                title="Keep Screen On">🔆</button>
             <button class="btn-reset text-lg" id="theme-btn" aria-label="Change Accent">🎨</button>
             <div id="clock" class="mono-text gold-text">12:00:00</div>
         </div>
@@ -665,14 +694,24 @@
 
                 <div class="form-group">
                     <label class="form-label">Sound</label>
-                    <select id="inp-sound" class="form-select" aria-label="Select Sound">
-                        <option value="default">System Beep</option>
-                        <option value="synth_cyberpunk">Synth: Cyberpunk Glitch</option>
-                        <option value="synth_zen">Synth: Zen Gong</option>
-                        <option value="synth_industrial">Synth: Industrial Clank</option>
-                        <option value="synth_digital">Synth: Digital Alarm</option>
-                        <option value="custom">Custom Upload...</option>
-                    </select>
+                    <div class="sound-row">
+                        <select id="inp-sound" class="form-select" aria-label="Select Sound">
+                            <option value="default">System Beep</option>
+                            <option value="synth_cyberpunk">Synth: Cyberpunk Glitch</option>
+                            <option value="synth_zen">Synth: Zen Gong</option>
+                            <option value="synth_industrial">Synth: Industrial Clank</option>
+                            <option value="synth_digital">Synth: Digital Alarm</option>
+                            <option value="synth_sonar">Synth: Sonar Ping</option>
+                            <option value="synth_klaxon">Synth: Alert Klaxon</option>
+                            <option value="synth_chiptune">Synth: Chiptune Arp</option>
+                            <option value="synth_pulse">Synth: Pulse Drone</option>
+                            <option value="synth_metalchime">Synth: Metal Chime</option>
+                            <option value="synth_synthstab">Synth: Synth Stab</option>
+                            <option value="custom">Custom Upload...</option>
+                        </select>
+                        <button type="button" id="preview-sound-btn" class="btn-reset preview-btn"
+                            aria-label="Preview Sound">🔊</button>
+                    </div>
                     <div id="upload-container" class="hidden">
                         <input type="file" id="inp-file" accept="audio/*" class="hidden">
                         <div class="file-upload-btn" onclick="document.getElementById('inp-file').click()">
@@ -719,10 +758,118 @@
          * - App Class: Main logic controller.
          */
 
-        // --- Audio Constants (Base64 placeholders) ---
-        // Note: In a real "Zero Dependency" file, we'd include actual Base64 strings here. 
-        // For brevity, using a simple generated beep and allowing user uploads.
-        const BEEP_B64 = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"; // Tiny placeholder, real app needs better
+        // --- Audio Constants ---
+        const BEEP_B64 = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU";
+
+        // --- Reliability Manager: Notifications, Vibration, Wake Lock ---
+        class ReliabilityManager {
+            constructor() {
+                this.wakeLock = null;
+                this.wakeLockEnabled = false;
+                this.notificationPermission = Notification.permission;
+                this.vibrationInterval = null;
+            }
+
+            async requestNotificationPermission() {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    this.notificationPermission = await Notification.requestPermission();
+                }
+                return this.notificationPermission;
+            }
+
+            showNotification(title, options = {}) {
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    const notification = new Notification(title, {
+                        body: options.body || 'Alarm triggered!',
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23000" width="100" height="100"/><text y="70" x="50" text-anchor="middle" font-size="60" fill="%23FFD700">⚡</text></svg>',
+                        tag: 'guardrail-alarm',
+                        requireInteraction: true,
+                        vibrate: [500, 200, 500]
+                    });
+                    notification.onclick = () => {
+                        window.focus();
+                        notification.close();
+                    };
+                    return notification;
+                }
+                return null;
+            }
+
+            startVibration() {
+                if ('vibrate' in navigator) {
+                    // Long pattern: buzz-pause-buzz-pause-buzz-pause-long buzz
+                    const pattern = [500, 200, 500, 200, 500, 200, 1000, 500];
+                    navigator.vibrate(pattern);
+                    // Repeat vibration
+                    this.vibrationInterval = setInterval(() => {
+                        navigator.vibrate(pattern);
+                    }, 4000);
+                }
+            }
+
+            stopVibration() {
+                if (this.vibrationInterval) {
+                    clearInterval(this.vibrationInterval);
+                    this.vibrationInterval = null;
+                }
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(0); // Stop any ongoing vibration
+                }
+            }
+
+            async toggleWakeLock() {
+                if (this.wakeLock) {
+                    await this.releaseWakeLock();
+                    return false;
+                } else {
+                    return await this.requestWakeLock();
+                }
+            }
+
+            async requestWakeLock() {
+                if ('wakeLock' in navigator) {
+                    try {
+                        this.wakeLock = await navigator.wakeLock.request('screen');
+                        this.wakeLockEnabled = true;
+                        this.wakeLock.addEventListener('release', () => {
+                            this.wakeLock = null;
+                            this.wakeLockEnabled = false;
+                            this.updateWakeLockUI();
+                        });
+                        this.updateWakeLockUI();
+                        return true;
+                    } catch (err) {
+                        console.warn('Wake Lock failed:', err);
+                        return false;
+                    }
+                }
+                return false;
+            }
+
+            async releaseWakeLock() {
+                if (this.wakeLock) {
+                    await this.wakeLock.release();
+                    this.wakeLock = null;
+                    this.wakeLockEnabled = false;
+                    this.updateWakeLockUI();
+                }
+            }
+
+            updateWakeLockUI() {
+                const btn = document.getElementById('wakelock-btn');
+                if (btn) {
+                    btn.classList.toggle('wakelock-active', this.wakeLockEnabled);
+                    btn.title = this.wakeLockEnabled ? 'Screen will stay on' : 'Keep Screen On';
+                }
+            }
+
+            // Re-acquire wake lock when page becomes visible again
+            async handleVisibilityChange() {
+                if (document.visibilityState === 'visible' && this.wakeLockEnabled && !this.wakeLock) {
+                    await this.requestWakeLock();
+                }
+            }
+        }
 
         class Database {
             constructor() {
@@ -775,6 +922,7 @@
             constructor() {
                 this.alarms = JSON.parse(localStorage.getItem('guardrail_alarms')) || [];
                 this.db = new Database();
+                this.reliability = new ReliabilityManager();
                 this.activeAudio = null;
                 this.triggeredAlarm = null;
                 this.now = new Date();
@@ -784,17 +932,24 @@
                 // Init
                 this.applyAccent();
                 this.db.init();
-                // this.bindEvents(); // Method not defined, events bound globally below
                 this.render();
                 this.tick();
 
-                // Unlock Audio for Mobile
+                // Request notification permission on first interaction
                 ['click', 'touchstart', 'keydown'].forEach(evt => {
                     document.addEventListener(evt, () => {
+                        // Unlock Audio for Mobile
                         if (app.synth && app.synth.ctx && app.synth.ctx.state === 'suspended') {
                             app.synth.ctx.resume();
                         }
+                        // Request notification permission
+                        this.reliability.requestNotificationPermission();
                     }, { once: true });
+                });
+
+                // Re-acquire wake lock when page becomes visible
+                document.addEventListener('visibilitychange', () => {
+                    this.reliability.handleVisibilityChange();
                 });
 
                 // Timer
@@ -954,9 +1109,17 @@
                 delete alarm.snoozeUntil; // Clear snooze once triggered
                 this.save();
 
-                // UI
+                // UI - Show fullscreen overlay
                 document.getElementById('trigger-msg').textContent = alarm.title;
                 document.getElementById('alarm-overlay').classList.remove('hidden');
+
+                // RELIABILITY: System notification (works in background)
+                this.reliability.showNotification(alarm.title, {
+                    body: 'Life Guardrail - Tap to dismiss'
+                });
+
+                // RELIABILITY: Vibration (works even with volume down)
+                this.reliability.startVibration();
 
                 // Audio
                 if (alarm.soundId && alarm.soundId !== 'default' && !alarm.soundId.startsWith('synth_')) {
@@ -965,7 +1128,8 @@
                         const url = URL.createObjectURL(blob);
                         this.activeAudio = new Audio(url);
                         this.activeAudio.loop = true;
-                        this.activeAudio.play();
+                        this.activeAudio.volume = 1.0; // Max volume
+                        this.activeAudio.play().catch(e => console.warn('Audio play failed:', e));
                     } else {
                         app.synth.play('beeps');
                     }
@@ -978,11 +1142,17 @@
             }
 
             dismissAlarm() {
+                // Stop audio
                 if (this.activeAudio) {
                     if (this.activeAudio.stop) this.activeAudio.stop(); // WebAudio/Synth
                     else this.activeAudio.pause(); // HTML5 Audio
                 }
                 if (app.synth) app.synth.stop();
+
+                // RELIABILITY: Stop vibration
+                this.reliability.stopVibration();
+
+                // Hide overlay
                 document.getElementById('alarm-overlay').classList.add('hidden');
                 this.triggeredAlarm = null;
             }
@@ -1244,133 +1414,254 @@
         class SoundSynthesizer {
             constructor() {
                 this.ctx = null;
+                this.masterGain = null;
                 this.osc = null;
                 this.interval = null;
+                this.previewTimeout = null;
             }
 
             init() {
-                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    // Master gain for maximum volume
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.gain.value = 2.0; // Boost audio above normal
+                    this.masterGain.connect(this.ctx.destination);
+                }
             }
 
             stop() {
                 if (this.osc) { try { this.osc.stop(); } catch (e) { } this.osc = null; }
                 if (this.interval) { clearInterval(this.interval); this.interval = null; }
+                if (this.previewTimeout) { clearTimeout(this.previewTimeout); this.previewTimeout = null; }
             }
 
-            play(type) {
+            play(type, loop = true) {
                 this.init();
                 this.stop();
                 if (this.ctx.state === 'suspended') this.ctx.resume();
 
-                if (type === 'cyberpunk') this.playCyberpunk();
-                else if (type === 'zen') this.playZen();
-                else if (type === 'industrial') this.playIndustrial();
-                else if (type === 'digital') this.playDigital();
-                else this.playBeeps();
+                const soundMap = {
+                    'cyberpunk': () => this.playCyberpunk(loop),
+                    'zen': () => this.playZen(loop),
+                    'industrial': () => this.playIndustrial(loop),
+                    'digital': () => this.playDigital(loop),
+                    'sonar': () => this.playSonar(loop),
+                    'klaxon': () => this.playKlaxon(loop),
+                    'chiptune': () => this.playChiptune(loop),
+                    'pulse': () => this.playPulse(loop),
+                    'metalchime': () => this.playMetalChime(loop),
+                    'synthstab': () => this.playSynthStab(loop)
+                };
+
+                const playFn = soundMap[type] || (() => this.playBeeps(loop));
+                playFn();
             }
 
-            playCyberpunk() {
-                // Low throbbing bass + high glitch
-                const playSwipe = () => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
+            preview(type) {
+                this.play(type, false);
+                // Stop after 2 seconds
+                this.previewTimeout = setTimeout(() => this.stop(), 2000);
+            }
 
+            createOscGain() {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                return { osc, gain };
+            }
+
+            playCyberpunk(loop) {
+                const playSwipe = () => {
+                    const { osc, gain } = this.createOscGain();
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(50, this.ctx.currentTime);
                     osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.5);
-
-                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
-
                     osc.start();
                     osc.stop(this.ctx.currentTime + 0.5);
                 };
                 playSwipe();
-                this.interval = setInterval(playSwipe, 1000);
+                if (loop) this.interval = setInterval(playSwipe, 1000);
             }
 
-            playZen() {
-                // Sine wave chime, very pure
+            playZen(loop) {
                 const playGong = () => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-
+                    const { osc, gain } = this.createOscGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(440, this.ctx.currentTime); // A4
-
+                    osc.frequency.setValueAtTime(440, this.ctx.currentTime);
                     gain.gain.setValueAtTime(0, this.ctx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0.5, this.ctx.currentTime + 0.1);
+                    gain.gain.linearRampToValueAtTime(0.6, this.ctx.currentTime + 0.1);
                     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 2.5);
-
                     osc.start();
                     osc.stop(this.ctx.currentTime + 3);
                 };
                 playGong();
-                this.interval = setInterval(playGong, 3500);
+                if (loop) this.interval = setInterval(playGong, 3500);
             }
 
-            playIndustrial() {
-                // Metallic noise
+            playIndustrial(loop) {
                 const playClank = () => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-
+                    const { osc, gain } = this.createOscGain();
                     osc.type = 'square';
                     osc.frequency.setValueAtTime(100, this.ctx.currentTime);
                     osc.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.1);
-
-                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
-
                     osc.start();
                     osc.stop(this.ctx.currentTime + 0.2);
                 };
                 playClank();
-                this.interval = setInterval(playClank, 500);
+                if (loop) this.interval = setInterval(playClank, 500);
             }
 
-            playDigital() {
-                // Typical alarm
+            playDigital(loop) {
                 const playBeep = () => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    const { osc, gain } = this.createOscGain();
                     osc.type = 'square';
                     osc.frequency.setValueAtTime(880, this.ctx.currentTime);
-                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
                     osc.start();
                     osc.stop(this.ctx.currentTime + 0.1);
-                }
+                };
                 playBeep();
                 setTimeout(playBeep, 150);
-                this.interval = setInterval(() => {
+                if (loop) this.interval = setInterval(() => {
                     playBeep();
                     setTimeout(playBeep, 150);
                 }, 1000);
             }
 
-            playBeeps() {
-                // Fallback siren
+            playBeeps(loop) {
                 const playShot = () => {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
+                    const { osc, gain } = this.createOscGain();
                     osc.frequency.setValueAtTime(600, this.ctx.currentTime);
                     osc.type = 'triangle';
-                    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
                     osc.start();
                     osc.stop(this.ctx.currentTime + 0.5);
                 };
                 playShot();
-                this.interval = setInterval(playShot, 1500);
+                if (loop) this.interval = setInterval(playShot, 1500);
+            }
+
+            // === NEW SOUNDS ===
+
+            playSonar(loop) {
+                // Submarine ping - clean sine with quick decay
+                const playPing = () => {
+                    const { osc, gain } = this.createOscGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.8);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.8);
+                };
+                playPing();
+                if (loop) this.interval = setInterval(playPing, 2000);
+            }
+
+            playKlaxon(loop) {
+                // Emergency siren - alternating high/low
+                let high = true;
+                const playSiren = () => {
+                    const { osc, gain } = this.createOscGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(high ? 800 : 600, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.35, this.ctx.currentTime + 0.4);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.5);
+                    high = !high;
+                };
+                playSiren();
+                if (loop) this.interval = setInterval(playSiren, 500);
+            }
+
+            playChiptune(loop) {
+                // 8-bit ascending arpeggio
+                const notes = [262, 330, 392, 523]; // C4, E4, G4, C5
+                let noteIdx = 0;
+                const playNote = () => {
+                    const { osc, gain } = this.createOscGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(notes[noteIdx], this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                    noteIdx = (noteIdx + 1) % notes.length;
+                };
+                playNote();
+                if (loop) this.interval = setInterval(playNote, 150);
+            }
+
+            playPulse(loop) {
+                // Deep pulsing drone for meditation
+                const playDrone = () => {
+                    const { osc, gain } = this.createOscGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(80, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.5, this.ctx.currentTime + 1);
+                    gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 2);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 2);
+                };
+                playDrone();
+                if (loop) this.interval = setInterval(playDrone, 2500);
+            }
+
+            playMetalChime(loop) {
+                // Metallic bell with harmonics
+                const playChime = () => {
+                    // Fundamental
+                    const { osc: osc1, gain: gain1 } = this.createOscGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(880, this.ctx.currentTime);
+                    gain1.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                    gain1.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.5);
+                    osc1.start();
+                    osc1.stop(this.ctx.currentTime + 1.5);
+
+                    // Harmonic
+                    const { osc: osc2, gain: gain2 } = this.createOscGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(1760, this.ctx.currentTime);
+                    gain2.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.8);
+                    osc2.start();
+                    osc2.stop(this.ctx.currentTime + 0.8);
+                };
+                playChime();
+                if (loop) this.interval = setInterval(playChime, 2000);
+            }
+
+            playSynthStab(loop) {
+                // Sharp synth hit - attention grabber
+                const playStab = () => {
+                    const { osc, gain } = this.createOscGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+                    osc.frequency.setValueAtTime(880, this.ctx.currentTime + 0.02);
+                    gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.15);
+                };
+                playStab();
+                setTimeout(playStab, 100);
+                setTimeout(playStab, 200);
+                if (loop) this.interval = setInterval(() => {
+                    playStab();
+                    setTimeout(playStab, 100);
+                    setTimeout(playStab, 200);
+                }, 1500);
             }
         }
 
@@ -1403,6 +1694,23 @@
 
         document.getElementById('inp-file').onchange = (e) => {
             if (e.target.files[0]) document.getElementById('file-name').textContent = e.target.files[0].name;
+        };
+
+        // Wake Lock toggle
+        document.getElementById('wakelock-btn').onclick = async () => {
+            const enabled = await app.reliability.toggleWakeLock();
+            app.showToast(enabled ? 'Screen will stay on' : 'Screen lock enabled');
+        };
+
+        // Sound preview button
+        document.getElementById('preview-sound-btn').onclick = () => {
+            const soundValue = document.getElementById('inp-sound').value;
+            if (soundValue === 'custom') {
+                app.showToast('Upload a file first');
+                return;
+            }
+            const type = soundValue.startsWith('synth_') ? soundValue.replace('synth_', '') : 'beeps';
+            app.synth.preview(type);
         };
 
         // Utils
