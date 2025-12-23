@@ -1,0 +1,11 @@
+# Sensitive files - never commit these
+HOME_LAB_INVENTORY.md
+PHONE_CLEANUP.md
+
+# Dev notes
+REFERENCE.md
+
+# Common ignores
+.DS_Store
+*.log
+.env
