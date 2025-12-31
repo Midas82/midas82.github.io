@@ -241,6 +241,26 @@
             letter-spacing: 1px;
         }
 
+        /* Category Sections */
+        .category-section {
+            margin-bottom: 3rem;
+        }
+
+        .category-title {
+            font-size: 1.3rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .category-desc {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+        }
+
+
         /* Prompt Cards */
         .prompt-card {
             cursor: pointer;
@@ -521,33 +541,64 @@
             <div class="section-header">
                 <h2 class="section-title">Applications</h2>
             </div>
-            <div class="card-grid">
-                <a href="./life-guardrail/" class="card app-card">
-                    <div class="app-icon">⚡</div>
-                    <div class="app-name">Life Guardrail</div>
-                    <p class="app-desc">Unlimited customizable alarms with advanced recurrence patterns. Procedural
-                        sounds, countdowns, and full offline support.</p>
-                    <span class="badge">PWA</span>
-                </a>
-                <a href="./downloads/py-line-fishing.zip" class="card app-card" download>
-                    <div class="app-icon">🎣</div>
-                    <div class="app-name">Py-Line Fishing</div>
-                    <p class="app-desc">Fishing adventure CLI bundle. Includes the anthology save system plus
-                        ready-to-run
-                        source files.</p>
-                    <span class="badge">CLI Bundle</span>
-                </a>
-                <a href="./maverick_arcade/" class="card app-card">
-                    <div class="app-icon">🎰</div>
-                    <div class="app-name">Maverick Arcade</div>
-                    <p class="app-desc">Spin the wheel to get your random mission! Price is Right style wheel with
-                        spinning sounds and applause. Complete tasks from home, creative, and self-improvement
-                        categories.</p>
-                    <span class="badge">PWA</span>
-                </a>
-                <!-- Add more apps here -->
+
+            <!-- PWA Category -->
+            <div class="category-section">
+                <h3 class="category-title">🌐 Progressive Web Apps (PWA)</h3>
+                <p class="category-desc">Install on any device, work offline, feel like native apps. No app store
+                    needed.</p>
+                <div class="card-grid">
+                    <a href="./life-guardrail/" class="card app-card">
+                        <div class="app-icon">⚡</div>
+                        <div class="app-name">Life Guardrail</div>
+                        <p class="app-desc">Unlimited customizable alarms with advanced recurrence patterns. Procedural
+                            sounds, countdowns, and full offline support.</p>
+                        <span class="badge">PWA</span>
+                    </a>
+                    <a href="./maverick_arcade/" class="card app-card">
+                        <div class="app-icon">🎰</div>
+                        <div class="app-name">Maverick Arcade</div>
+                        <p class="app-desc">Spin the wheel to get your random mission! Price is Right style wheel with
+                            spinning sounds and applause.</p>
+                        <span class="badge">PWA</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- CLI Category -->
+            <div class="category-section">
+                <h3 class="category-title">💻 Command Line Interface (CLI)</h3>
+                <p class="category-desc">Terminal-based apps for power users. Run on any platform with Python or
+                    compatible shell.</p>
+                <div class="card-grid">
+                    <a href="./downloads/py-line-fishing.zip" class="card app-card" download>
+                        <div class="app-icon">🎣</div>
+                        <div class="app-name">Py-Line Fishing</div>
+                        <p class="app-desc">Fishing adventure CLI bundle. Includes the anthology save system plus
+                            ready-to-run source files. Extract and run!</p>
+                        <span class="badge">CLI Bundle</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Android Category -->
+            <div class="category-section">
+                <h3 class="category-title">📱 Android Apps</h3>
+                <p class="category-desc">Native Android applications. Download APK and install directly on your device.
+                </p>
+                <div class="card-grid">
+                    <a href="https://github.com/Midas82/TradeLog/releases" class="card app-card" target="_blank"
+                        rel="noopener">
+                        <div class="app-icon">📊</div>
+                        <div class="app-name">TradeLog</div>
+                        <p class="app-desc">Receipt scanner and mileage tracker for contractors. Automatic IRS deduction
+                            calculations, offline-first design.</p>
+                        <span class="badge">Android</span>
+                    </a>
+                </div>
             </div>
         </section>
+
 
         <!-- PROMPTS SECTION -->
         <section id="prompts" class="section">
