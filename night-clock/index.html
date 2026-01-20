@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="screen-orientation" content="landscape">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-512.png">
+    <title>Night Clock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+        }
+
+        .clock-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1vw;
+        }
+
+        .digit-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+        }
+
+        .digit {
+            position: relative;
+            background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 49%, #0a0a0a 51%, #151515 100%);
+            border-radius: 1vw;
+            padding: 1vw 2vw;
+            border: 1px solid #2a2a2a;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                0 4px 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .digit::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 2px;
+            background: #000;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            z-index: 10;
+        }
+
+        .digit-text {
+            font-size: 28vw;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--glow-color, #4fffef);
+            text-shadow:
+                0 0 10px var(--glow-color, #4fffef),
+                0 0 20px var(--glow-color, #4fffef),
+                0 0 40px var(--glow-color, #4fffef),
+                0 0 80px var(--glow-color, #4fffef);
+            filter: blur(0.3px);
+        }
+
+        .colon {
+            font-size: 24vw;
+            font-weight: 700;
+            color: var(--glow-color, #4fffef);
+            text-shadow:
+                0 0 10px var(--glow-color, #4fffef),
+                0 0 20px var(--glow-color, #4fffef),
+                0 0 40px var(--glow-color, #4fffef);
+            animation: blink 1s ease-in-out infinite;
+            margin: 0 0.5vw;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .period-container {
+            display: flex;
+            flex-direction: column;
+            margin-left: 2vw;
+        }
+
+        .period {
+            position: relative;
+            background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 49%, #0a0a0a 51%, #151515 100%);
+            border-radius: 0.8vw;
+            padding: 0.8vw 1.5vw;
+            border: 1px solid #2a2a2a;
+            margin: 0.3vw 0;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                0 4px 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .period::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: #000;
+            z-index: 10;
+        }
+
+        .period-text {
+            font-size: 10vw;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--glow-color, #4fffef);
+            text-shadow:
+                0 0 10px var(--glow-color, #4fffef),
+                0 0 20px var(--glow-color, #4fffef),
+                0 0 40px var(--glow-color, #4fffef);
+        }
+
+        .color-btn {
+            position: fixed;
+            bottom: 3vh;
+            right: 3vw;
+            width: 12vw;
+            height: 12vw;
+            max-width: 60px;
+            max-height: 60px;
+            min-width: 40px;
+            min-height: 40px;
+            border-radius: 50%;
+            border: 3px solid var(--glow-color, #4fffef);
+            background: radial-gradient(circle, var(--glow-color, #4fffef) 0%, transparent 70%);
+            opacity: 0.6;
+            cursor: pointer;
+            transition: opacity 0.3s, transform 0.2s;
+            box-shadow:
+                0 0 15px var(--glow-color, #4fffef),
+                inset 0 0 10px var(--glow-color, #4fffef);
+        }
+
+        .color-btn:hover,
+        .color-btn:active {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .rotate-msg {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            color: #4fffef;
+            font-size: 6vw;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        @media (orientation: portrait) {
+
+            .clock-container,
+            .color-btn {
+                display: none;
+            }
+
+            .rotate-msg {
+                display: flex;
+            }
+        }
+
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 3vh;
+            left: 3vw;
+            width: 12vw;
+            height: 12vw;
+            max-width: 60px;
+            max-height: 60px;
+            min-width: 40px;
+            min-height: 40px;
+            border-radius: 10px;
+            border: 2px solid var(--glow-color, #4fffef);
+            background: transparent;
+            opacity: 0.4;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.3s;
+        }
+
+        .fullscreen-btn:hover,
+        .fullscreen-btn:active {
+            opacity: 0.8;
+        }
+
+        .fullscreen-btn svg {
+            width: 60%;
+            height: 60%;
+            stroke: var(--glow-color, #4fffef);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        @media (orientation: portrait) {
+            .fullscreen-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="rotate-msg">
+        📱 Please rotate your phone to landscape mode
+    </div>
+
+    <div class="clock-container">
+        <div class="digit-group">
+            <div class="digit"><span class="digit-text" id="h1">1</span></div>
+            <div class="digit"><span class="digit-text" id="h2">2</span></div>
+        </div>
+        <span class="colon">:</span>
+        <div class="digit-group">
+            <div class="digit"><span class="digit-text" id="m1">0</span></div>
+            <div class="digit"><span class="digit-text" id="m2">0</span></div>
+        </div>
+        <div class="period-container">
+            <div class="period"><span class="period-text" id="period-a">A</span></div>
+            <div class="period"><span class="period-text" id="period-m">M</span></div>
+        </div>
+    </div>
+
+    <button class="color-btn" id="colorBtn" aria-label="Change color"></button>
+
+    <button class="fullscreen-btn" id="fullscreenBtn" aria-label="Toggle fullscreen">
+        <svg viewBox="0 0 24 24">
+            <path d="M4 4h6v2H6v4H4V4zm16 0v6h-2V6h-4V4h6zM4 14v6h6v-2H6v-4H4zm16 0v6h-6v-2h4v-4h2z" />
+        </svg>
+    </button>
+
+    <script>
+        const colors = [
+            '#4fffef', // Classic Indiglo
+            '#00ff88', // Emerald
+            '#00bfff', // Sky blue
+            '#ff6b6b', // Soft red
+            '#ffa500', // Amber
+            '#da70d6', // Purple
+            '#ffffff', // White
+            '#7fff00', // Chartreuse
+            '#ff69b4', // Hot pink
+            '#40e0d0', // Turquoise
+        ];
+
+        let colorIndex = 0;
+
+        function setColor(color) {
+            document.documentElement.style.setProperty('--glow-color', color);
+        }
+
+        function cycleColor() {
+            colorIndex = (colorIndex + 1) % colors.length;
+            setColor(colors[colorIndex]);
+            localStorage.setItem('nightClockColor', colorIndex);
+        }
+
+        const savedColor = localStorage.getItem('nightClockColor');
+        if (savedColor !== null) {
+            colorIndex = parseInt(savedColor);
+            setColor(colors[colorIndex]);
+        }
+
+        document.getElementById('colorBtn').addEventListener('click', cycleColor);
+
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const ampm = hours >= 12 ? 'P' : 'A';
+
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+
+            const h1 = hours >= 10 ? Math.floor(hours / 10) : '';
+            const h2 = hours % 10;
+            const m1 = Math.floor(minutes / 10);
+            const m2 = minutes % 10;
+
+            document.getElementById('h1').textContent = h1;
+            document.getElementById('h2').textContent = h2;
+            document.getElementById('m1').textContent = m1;
+            document.getElementById('m2').textContent = m2;
+            document.getElementById('period-a').textContent = ampm;
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => { });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    await navigator.wakeLock.request('screen');
+                }
+            } catch (err) { }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
+        requestWakeLock();
+
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => { });
+        }
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => { });
+        }
+    </script>
+</body>
+
+</html>
