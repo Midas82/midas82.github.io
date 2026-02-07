@@ -114,23 +114,31 @@ jobs:
         run: |
           cd ${{ github.workspace }}/capacitor-build/android/app/build/outputs/apk/debug
 
-          # Generate keystore (for debug signing)
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)
+
+          # Generate keystore
           keytool -genkey -v -keystore debug.keystore -alias debug -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Midas82, OU=Development, O=Midas Digital Solutions, L=Unknown, S=Unknown, C=US" \
             -storepass android -keypass android
 
-          # Sign the APK
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-            -keystore debug.keystore -storepass android -keypass android \
-            app-debug.apk debug
+          # Zipalign FIRST (required before apksigner)
+          ${BUILD_TOOLS}zipalign -f -v 4 app-debug.apk app-aligned.apk
 
-          # Zipalign
-          $ANDROID_HOME/build-tools/34.0.0/zipalign -v 4 app-debug.apk life-guardrail-signed.apk
+          # Sign with apksigner (v2/v3 signing for modern Android)
+          ${BUILD_TOOLS}apksigner sign \
+            --ks debug.keystore \
+            --ks-key-alias debug \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out life-guardrail.apk \
+            app-aligned.apk
 
-      - name: Rename APK
+          # Verify signature
+          ${BUILD_TOOLS}apksigner verify --verbose life-guardrail.apk
+
+      - name: Move APK
         run: |
-          cd ${{ github.workspace }}/capacitor-build/android/app/build/outputs/apk/debug
-          mv life-guardrail-signed.apk ${{ github.workspace }}/life-guardrail.apk
+          mv ${{ github.workspace }}/capacitor-build/android/app/build/outputs/apk/debug/life-guardrail.apk ${{ github.workspace }}/life-guardrail.apk
 
       - name: Create Release and Upload APK
         env:
