@@ -1,0 +1,169 @@
+name: Build Life Guardrail APK
+
+on:
+  push:
+    paths:
+      - 'life-guardrail/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create Capacitor Project
+        run: |
+          cd ${{ github.workspace }}
+          mkdir -p capacitor-build
+          cd capacitor-build
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/local-notifications
+
+          # Initialize Capacitor
+          npx cap init "Life Guardrail" "com.midas.lifeguardrail" --web-dir=www
+
+          # Copy PWA files
+          mkdir -p www
+          cp -r ${{ github.workspace }}/life-guardrail/* www/
+
+          # Add Android platform
+          npx cap add android
+
+      - name: Configure Android Permissions
+        run: |
+          cd ${{ github.workspace }}/capacitor-build/android/app/src/main
+
+          # Add permissions to AndroidManifest.xml
+          sed -i '/<\/manifest>/i \
+          \    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" \/>\n\
+          \    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" \/>\n\
+          \    <uses-permission android:name="android.permission.USE_EXACT_ALARM" \/>\n\
+          \    <uses-permission android:name="android.permission.WAKE_LOCK" \/>\n\
+          \    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" \/>\n\
+          \    <uses-permission android:name="android.permission.VIBRATE" \/>\n\
+          \    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" \/>' AndroidManifest.xml
+
+      - name: Update Capacitor Config
+        run: |
+          cd ${{ github.workspace }}/capacitor-build
+          cat > capacitor.config.json << 'EOF'
+          {
+            "appId": "com.midas.lifeguardrail",
+            "appName": "Life Guardrail",
+            "webDir": "www",
+            "android": {
+              "allowMixedContent": true,
+              "captureInput": true,
+              "webContentsDebuggingEnabled": false
+            },
+            "plugins": {
+              "LocalNotifications": {
+                "smallIcon": "ic_stat_icon_config_sample",
+                "iconColor": "#FFD700",
+                "sound": "beep.wav"
+              }
+            }
+          }
+          EOF
+
+      - name: Sync Capacitor
+        run: |
+          cd ${{ github.workspace }}/capacitor-build
+          npx cap sync android
+
+      - name: Build Debug APK
+        run: |
+          cd ${{ github.workspace }}/capacitor-build/android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Sign APK
+        run: |
+          cd ${{ github.workspace }}/capacitor-build/android/app/build/outputs/apk/debug
+
+          # Generate keystore (for debug signing)
+          keytool -genkey -v -keystore debug.keystore -alias debug -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Midas82, OU=Development, O=Midas Digital Solutions, L=Unknown, S=Unknown, C=US" \
+            -storepass android -keypass android
+
+          # Sign the APK
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore debug.keystore -storepass android -keypass android \
+            app-debug.apk debug
+
+          # Zipalign
+          $ANDROID_HOME/build-tools/34.0.0/zipalign -v 4 app-debug.apk life-guardrail-signed.apk
+
+      - name: Rename APK
+        run: |
+          cd ${{ github.workspace }}/capacitor-build/android/app/build/outputs/apk/debug
+          mv life-guardrail-signed.apk ${{ github.workspace }}/life-guardrail.apk
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: life-guardrail-v${{ github.run_number }}
+          release_name: Life Guardrail APK v${{ github.run_number }}
+          body: |
+            🔔 **Life Guardrail Android App**
+
+            **New in this build:**
+            - ✅ 20 built-in alarm sounds
+            - ✅ Native notifications (work when screen is off)
+            - ✅ Background alarm scheduling
+            - ✅ Wake-lock support
+            - ✅ 5 alarm types (Fixed, Interval, Weekly, Cyclic, Annual)
+
+            **Installation:**
+            1. Download `life-guardrail.apk` below
+            2. Tap to install (enable "Install from Unknown Sources" if needed)
+            3. App icon will appear on home screen
+
+            **Premium Alarm Sounds:**
+            - ⚠️ Air Raid Siren
+            - ⚓ Ship's Bell
+            - 🚨 Police Klaxon
+            - 🌪️ Tornado Warning
+            - ☢️ Nuclear Alert
+
+            Built with Capacitor + PWA
+            Auto-generated by GitHub Actions
+          draft: false
+          prerelease: false
+
+      - name: Upload APK to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./life-guardrail.apk
+          asset_name: life-guardrail.apk
+          asset_content_type: application/vnd.android.package-archive
+
+      - name: Upload APK as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: life-guardrail-apk
+          path: ./life-guardrail.apk
+          retention-days: 90
