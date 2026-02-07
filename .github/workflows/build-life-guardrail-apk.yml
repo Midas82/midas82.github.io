@@ -83,6 +83,19 @@ jobs:
           }
           EOF
 
+      - name: Fix Kotlin Dependency Conflicts
+        run: |
+          cd ${{ github.workspace }}/capacitor-build/android
+
+          # Add dependency resolution to app/build.gradle
+          cat >> app/build.gradle << 'EOF'
+
+          configurations.all {
+              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+          }
+          EOF
+
       - name: Sync Capacitor
         run: |
           cd ${{ github.workspace }}/capacitor-build
