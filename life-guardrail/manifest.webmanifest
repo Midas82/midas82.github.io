@@ -1,10 +1,14 @@
 {
     "short_name": "Guardrail",
-    "name": "Life Guardrail",
-    "start_url": ".",
+    "name": "Life Guardrail - Smart Alarms",
+    "description": "Powerful alarm and reminder system with offline support. Install as native app.",
+    "start_url": "./",
+    "scope": "./",
     "display": "standalone",
+    "orientation": "portrait-primary",
     "theme_color": "#000000",
     "background_color": "#000000",
+    "categories": ["productivity", "utilities"],
     "icons": [
         {
             "src": "icon-512.png",
@@ -17,6 +21,14 @@
             "type": "image/png",
             "sizes": "512x512",
             "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "icon-512.png",
+            "type": "image/png",
+            "sizes": "192x192",
+            "purpose": "any"
         }
     ]
 }
